@@ -22,21 +22,77 @@ local DinoMachineEvent = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChi
 local GameEvents = ReplicatedStorage:WaitForChild("GameEvents")
 local LoadScreenEvent = GameEvents:WaitForChild("LoadScreenEvent")
 local FinishLoading = GameEvents:WaitForChild("Finish_Loading")
+local SellPetEvent = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("SellPet_RE")
+local player = Players.LocalPlayer
 
 -- State để quản lý trạng thái trồng cây hoặc bán
 local isPlanting = false
 local isSelling = false
 local lastSellTime = 0
 
--- Auto Click Loading Game After Join Game
-local function autoFinishLoading()
-    -- Gửi sự kiện LoadScreen (nếu cần thiết)
-    LoadScreenEvent:FireServer(LocalPlayer)
-    wait(5) -- đợi 1 giây cho an toàn, có thể chỉnh thấp hơn
+local function isBlacklisted(petName)
+	for _, blacklisted in ipairs(getgenv().Config["Sell Mode"]["Blacklist To Sell Pet"]) do
+		if string.find(petName, blacklisted) then
+			return true
+		end
+	end
+	return false
+end
 
-    -- Gửi sự kiện hoàn tất loading
+-- Tìm và bán 1 pet không nằm trong blacklist
+local function sellOnePet()
+	local petSold = false
+	local inventory = player.Backpack:GetChildren()
+
+	for _, item in ipairs(inventory) do
+		if item:IsA("Tool") and item:GetAttribute("PET_UUID") then
+			local name = item.Name
+			if not isBlacklisted(name) then
+                item.Parent = player.Character
+                task.wait(0.2)
+				SellPetEvent:FireServer(item)
+				print("Đã bán pet:", name)
+				petSold = true
+				break
+			end
+		end
+	end
+
+	return petSold
+end
+
+local function sellPetIfNeeded()
+    local sellConfig = getgenv().Config and getgenv().Config["Sell Mode"]
+    if not (sellConfig and sellConfig["Enable"]) then return end
+
+    local inventory = LocalPlayer.Backpack:GetChildren()
+    local petCount = 0
+
+    for _, item in ipairs(inventory) do
+        if item:IsA("Tool") and item:GetAttribute("PET_UUID") then
+            petCount += 1
+        end
+    end
+
+    print("🐾 Pet hiện tại:", petCount .. "/60")
+
+    local limit = tonumber(sellConfig["Sell Pet With Full Inventory"])
+    if petCount >= 60 and limit and limit > 0 then
+        for i = 1, limit do
+            local success = sellOnePet()
+            if not success then
+                print("❌ Không còn pet hợp lệ để bán.")
+                break
+            end
+            task.wait(0.2)
+        end
+    end
+end
+
+local function autoFinishLoading()
+    LoadScreenEvent:FireServer(LocalPlayer)
+    wait(5)
     FinishLoading:FireServer()
-    print("✅ Đã gửi sự kiện Finish_Loading")
 end
 
 -- Lock FPS
@@ -657,214 +713,6 @@ local function hatchPetLoop()
     end)
 end
 
--- Dino Quest: Harvest Berries
-local function checkDinoHarvestQuest()
-    local dinoQuestCfg = getgenv().Config["DinoQuest"] or {}
-    if not dinoQuestCfg["HarvestBerries"] then return end
-
-    local function getCurrentHarvestProgress()
-        local data = DataService:GetData()
-        if not data or not data.DinoQuests then return 0 end
-        for _, containerId in pairs(data.DinoQuests.Containers) do
-            local container = QuestController:GetContainerFromId(containerId)
-            if container then
-                for _, questData in pairs(container.Quests) do
-                    local quest = QuestController:GetQuest(questData.Type)
-                    if quest then
-                        local display = quest:Display(questData.Progress, questData.Target, questData.Arguments)
-                        if string.lower(display.Title):find("harvest") then
-                            return questData.Progress or 0, questData.Target, questData.Id
-                        end
-                    end
-                end
-            end
-        end
-        return 0
-    end
-
-    local function collectBlueberriesUntilTarget(targetAmount, questId)
-        task.spawn(function()
-            while true do
-                local farm = findPlayerFarm()
-                if not farm then break end
-                local toSend = {}
-                for _, prompt in ipairs(CollectionService:GetTagged("CollectPrompt")) do
-                    if prompt:IsDescendantOf(farm) and prompt:GetAttribute("Collected") ~= true and prompt.Enabled then
-                        local plantModel = prompt.Parent and prompt.Parent.Parent
-                        if plantModel and plantModel.Name == "Blueberry" then
-                            prompt:SetAttribute("Collected", true)
-                            task.delay(1, function()
-                                if prompt then prompt:SetAttribute("Collected", nil) end
-                            end)
-                            table.insert(toSend, plantModel)
-                        end
-                    end
-                end
-                if #toSend > 0 then
-                    RemoteCollect.send(toSend)
-                    print("🌾 Đã thu hoạch", #toSend, "cây Blueberry")
-                end
-                task.wait(1)
-                local progress, target = getCurrentHarvestProgress()
-                print("📊 Tiến độ Harvest:", progress, "/", target)
-                if progress >= target then
-                    print("✅ Nhiệm vụ Harvest hoàn thành!")
-                    local success, result = pcall(function()
-                        return ReplicatedStorage.GameEvents.ClaimDinoQuest:InvokeServer(questId)
-                    end)
-                    if success then
-                        print("🎉 Đã nhận phần thưởng Dino Quest.")
-                    else
-                        warn("❌ Lỗi khi nhận thưởng:", result)
-                    end
-                    break
-                end
-            end
-        end)
-    end
-
-    local data = DataService:GetData()
-    if not data or not data.DinoQuests or not data.DinoQuests.Containers then
-        warn("⚠️ Không tìm thấy dữ liệu DinoQuests")
-        return
-    end
-
-    for _, containerId in pairs(data.DinoQuests.Containers) do
-        local container = QuestController:GetContainerFromId(containerId)
-        if container and container.Quests then
-            for _, questData in pairs(container.Quests) do
-                local quest = QuestController:GetQuest(questData.Type)
-                if quest then
-                    local display = quest:Display(questData.Progress, questData.Target, questData.Arguments)
-                    if string.lower(display.Title):find("harvest") then
-                        if questData.Completed then
-                            print("✅ Nhiệm vụ Harvest đã hoàn thành! Nhận thưởng...")
-                            local success, result = pcall(function()
-                                return ReplicatedStorage.GameEvents.ClaimDinoQuest:InvokeServer(questData.Id)
-                            end)
-                            if success then
-                                print("🎉 Đã nhận phần thưởng.")
-                            else
-                                warn("❌ Lỗi khi nhận thưởng:", result)
-                            end
-                        else
-                            print("❌ Nhiệm vụ Harvest chưa hoàn thành. Tiến độ:", questData.Progress, "/", questData.Target)
-                            collectBlueberriesUntilTarget(questData.Target, questData.Id)
-                        end
-                        return
-                    end
-                end
-            end
-        end
-    end
-    print("⚠️ Không tìm thấy nhiệm vụ Harvest.")
-end
-
--- Dino Quest: Grow Dog
-local function checkGrowDogQuest()
-    local dinoQuestCfg = getgenv().Config["DinoQuest"] or {}
-    if not dinoQuestCfg["GrowDog"] then return end
-
-    local function growDogUntilAge(targetAge, questId)
-        print("🔎 Target Age:", targetAge)
-        local uuid = nil
-        for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            if tool:IsA("Tool") and tool.Name:lower():find("dog") then
-                local attr = tool:GetAttribute("PET_UUID")
-                if attr then
-                    uuid = attr
-                    print("🎒 Tìm thấy Dog trong Backpack:", tool.Name, "UUID:", uuid)
-                    break
-                end
-            end
-        end
-        if not uuid then
-            warn("❌ Không tìm thấy Dog trong Backpack.")
-            return
-        end
-
-        local farm = findPlayerFarm()
-        if not farm then return end
-        local centerPoint = farm:FindFirstChild("Center_Point")
-        if not centerPoint then
-            warn("❌ Không tìm thấy Center_Point trong farm.")
-            return
-        end
-
-        LocalPlayer.Character:SetPrimaryPartCFrame(centerPoint.CFrame + Vector3.new(0, 3, 0))
-        task.wait(1)
-        local args = { [1] = "EquipPet", [2] = uuid, [3] = centerPoint.CFrame }
-        ReplicatedStorage.GameEvents.PetsService:FireServer(unpack(args))
-        print("📦 Đã gọi EquipPet cho Dog.")
-
-        task.spawn(function()
-            while true do
-                for _, pet in ipairs(Workspace:GetDescendants()) do
-                    if pet:GetAttribute("UUID") == uuid and tostring(pet:GetAttribute("OWNER")) == LocalPlayer.Name then
-                        local petData = ActivePetsService:GetPetDataFromPetObject(pet)
-                        if petData and petData.PetData and petData.PetData.Level then
-                            local age = petData.PetData.Level
-                            print("📊 Dog Age:", age)
-                            if age >= targetAge then
-                                print("🎯 Dog đã đủ tuổi", targetAge)
-                                local success, result = pcall(function()
-                                    return ReplicatedStorage.GameEvents.ClaimDinoQuest:InvokeServer(questId)
-                                end)
-                                if success then
-                                    print("🏆 Đã nhận phần thưởng!")
-                                else
-                                    warn("❌ Lỗi khi nhận thưởng:", result)
-                                end
-                                return
-                            end
-                        else
-                            warn("⚠️ Không lấy được Age từ PetData")
-                        end
-                    end
-                end
-                task.wait(2)
-            end
-        end)
-    end
-
-    local data = DataService:GetData()
-    if not data or not data.DinoQuests or not data.DinoQuests.Containers then
-        warn("⚠️ Không tìm thấy dữ liệu DinoQuests")
-        return
-    end
-
-    for _, containerId in pairs(data.DinoQuests.Containers) do
-        local container = QuestController:GetContainerFromId(containerId)
-        if container and container.Quests then
-            for _, questData in pairs(container.Quests) do
-                local quest = QuestController:GetQuest(questData.Type)
-                if quest then
-                    local display = quest:Display(questData.Progress, questData.Target, questData.Arguments)
-                    local title = string.lower(display.Title)
-                    if title:find("dog") and title:find("age") and title:find("10") then
-                        if questData.Completed then
-                            print("✅ Nhiệm vụ Grow Dog hoàn thành! Nhận thưởng...")
-                            local success, result = pcall(function()
-                                return ReplicatedStorage.GameEvents.ClaimDinoQuest:InvokeServer(questData.Id)
-                            end)
-                            if success then
-                                print("🎉 Đã nhận phần thưởng.")
-                            else
-                                warn("❌ Lỗi khi nhận thưởng:", result)
-                            end
-                        else
-                            print("⏳ Nhiệm vụ Grow Dog chưa hoàn thành. Chăm pet...")
-                            growDogUntilAge(10, questData.Id)
-                        end
-                        return
-                    end
-                end
-            end
-        end
-    end
-    print("⚠️ Không tìm thấy nhiệm vụ Grow Dog.")
-end
-
 -- Destroy Trees
 local function removeTrees()
     local config = getgenv().Config["Destroy Mode"]
@@ -1264,12 +1112,11 @@ task.spawn(function()
         end
 
         -- Thực hiện các chức năng khác
+        sellPetIfNeeded()
         equipPets()
         craftDinoEgg()
         buyAndPlaceEggs()
         hatchPetLoop()
-        checkDinoHarvestQuest()
-        checkGrowDogQuest()
         removeTrees()
 
         -- Gọi hàm quản lý chu trình
@@ -1330,4 +1177,4 @@ end
 boostFPS()
 lockFPS()
 autoFinishLoading()
-print("🚀 Script tự động đã khởi động!")
+print("Welcome to Sigma Hub Kaitun Grow A Garden")
