@@ -221,7 +221,7 @@ local function updateScreenAppearance()
     local petList = {
         "Queen Bee", "Red Fox", "Dragonfly", "Raccoon", "Disco Bee", "Butterfly",
         "Mimic Octopus", "Meerkat", "Sand Snake", "Fennec Fox", "Bunny",
-        "Hyacinth Macaw", "Hamster", "Golden Lab", "T-Rex"
+        "Hyacinth Macaw", "Hamster", "T-Rex"
     }
 
     local trackedPets = {}
@@ -676,7 +676,7 @@ local function hatchPetLoop()
                 if objects and objects:FindFirstChild("PetEgg") then
                     local petEgg = objects.PetEgg
 
-                    -- Lưu lại các pet trước khi ấp
+                    -- Lưu danh sách pet trước khi ấp
                     local beforePets = {}
                     local currentData = DataService:GetData()
                     if currentData and currentData.PetsData then
@@ -685,42 +685,51 @@ local function hatchPetLoop()
                         end
                     end
 
-                    -- Ấp trứng
+                    -- Gửi yêu cầu ấp trứng
                     eggService:FireServer("HatchPet", petEgg)
                     print("✅ Đã gửi yêu cầu ấp trứng:", petEgg.Name)
 
-                    task.wait(2) -- đợi server xử lý
+                    task.wait(2) -- chờ server xử lý
 
-                    -- Kiểm tra pet mới nở
+                    -- Kiểm tra pet mới
                     local afterPets = DataService:GetData().PetsData.PetInventory.Data
-                    local newPetType, newPetUUID
                     for uuid, pet in pairs(afterPets) do
                         if not beforePets[uuid] then
-                            newPetType, newPetUUID = pet.PetType or "Unknown", uuid
-                            print(("🎉 Pet vừa nở: %s (UUID: %s)"):format(newPetType, uuid))
+                            local petType = pet.PetType or "Unknown"
+                            print("🎉 Pet vừa nở:", petType, "(UUID:", uuid, ")")
 
-                            -- Gửi webhook nếu pet nằm trong danh sách
+                            -- Gửi webhook nếu tên trùng
                             local sendList = (getgenv().Config and getgenv().Config.PetSendWebhook) or {}
                             for _, name in ipairs(sendList) do
-                                if name == newPetType then
-                                    sendPetWebhook(newPetType)
+                                if name == petType then
+                                    sendPetWebhook(petType)
                                     break
                                 end
                             end
-                            break
-                        end
-                    end
 
-                    -- ❗ NEW: nếu pet mới đã được equip trên tay ⇒ dừng loop
-                    if newPetType then
-                        local char = game:GetService("Players").LocalPlayer.Character
-                        if char then
-                            -- Giả định pet được equip dưới dạng Tool / Accessory có cùng tên petType
-                            local equipped = char:FindFirstChild(newPetType) or char:FindFirstChildOfClass("Tool")
-                            if equipped then
-                                print(("⏹️ Đã trang bị %s trên tay – dừng tự ấp."):format(newPetType))
-                                return -- thoát task.spawn, kết thúc loop
+                            -- 🧤 Kiểm tra xem có đang cầm pet này không
+                            local char = game:GetService("Players").LocalPlayer.Character
+                            if char then
+                                -- Có thể là Tool hoặc instance cùng tên pet
+                                local equippedPet = char:FindFirstChild(petType)
+                                    or (char:FindFirstChildOfClass("Tool") and char:FindFirstChildOfClass("Tool").Name == petType and char:FindFirstChildOfClass("Tool"))
+
+                                if equippedPet then
+                                    print("🛑 Phát hiện đang cầm pet trên tay, tiến hành gỡ bỏ...")
+
+                                    -- Bỏ trang bị: chuyển tool/pet về Backpack
+                                    local backpack = game:GetService("Players").LocalPlayer:FindFirstChild("Backpack")
+                                    if backpack then
+                                        equippedPet.Parent = backpack
+                                        print("✅ Đã bỏ pet khỏi tay:", petType)
+                                    else
+                                        print("⚠️ Không tìm thấy Backpack để gỡ pet.")
+                                    end
+                                else
+                                    print("ℹ️ Không phát hiện pet đang được trang bị.")
+                                end
                             end
+                            break
                         end
                     end
                 else
