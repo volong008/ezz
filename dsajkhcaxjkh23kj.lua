@@ -1,4 +1,3 @@
--- Dịch vụ và module
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -675,30 +674,52 @@ local function hatchPetLoop()
             if farm then
                 local objects = farm:FindFirstChild("Important") and farm.Important:FindFirstChild("Objects_Physical")
                 if objects and objects:FindFirstChild("PetEgg") then
-                    local petEgg = objects:FindFirstChild("PetEgg")
+                    local petEgg = objects.PetEgg
+
+                    -- Lưu lại các pet trước khi ấp
                     local beforePets = {}
                     local currentData = DataService:GetData()
                     if currentData and currentData.PetsData then
-                        local inventory = currentData.PetsData.PetInventory.Data
-                        for uuid in pairs(inventory) do
+                        for uuid in pairs(currentData.PetsData.PetInventory.Data) do
                             beforePets[uuid] = true
                         end
                     end
-                    local args = { "HatchPet", petEgg }
-                    eggService:FireServer(unpack(args))
+
+                    -- Ấp trứng
+                    eggService:FireServer("HatchPet", petEgg)
                     print("✅ Đã gửi yêu cầu ấp trứng:", petEgg.Name)
-                    task.wait(2)
+
+                    task.wait(2) -- đợi server xử lý
+
+                    -- Kiểm tra pet mới nở
                     local afterPets = DataService:GetData().PetsData.PetInventory.Data
+                    local newPetType, newPetUUID
                     for uuid, pet in pairs(afterPets) do
                         if not beforePets[uuid] then
-                            local petType = pet.PetType or "Unknown"
-                            print("🎉 Pet vừa nở:", petType, "(UUID:", uuid, ")")
-                            local sendList = getgenv().Config and getgenv().Config.PetSendWebhook or {}
+                            newPetType, newPetUUID = pet.PetType or "Unknown", uuid
+                            print(("🎉 Pet vừa nở: %s (UUID: %s)"):format(newPetType, uuid))
+
+                            -- Gửi webhook nếu pet nằm trong danh sách
+                            local sendList = (getgenv().Config and getgenv().Config.PetSendWebhook) or {}
                             for _, name in ipairs(sendList) do
-                                if name == petType then
-                                    sendPetWebhook(petType)
+                                if name == newPetType then
+                                    sendPetWebhook(newPetType)
                                     break
                                 end
+                            end
+                            break
+                        end
+                    end
+
+                    -- ❗ NEW: nếu pet mới đã được equip trên tay ⇒ dừng loop
+                    if newPetType then
+                        local char = game:GetService("Players").LocalPlayer.Character
+                        if char then
+                            -- Giả định pet được equip dưới dạng Tool / Accessory có cùng tên petType
+                            local equipped = char:FindFirstChild(newPetType) or char:FindFirstChildOfClass("Tool")
+                            if equipped then
+                                print(("⏹️ Đã trang bị %s trên tay – dừng tự ấp."):format(newPetType))
+                                return -- thoát task.spawn, kết thúc loop
                             end
                         end
                     end
