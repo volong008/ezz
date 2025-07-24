@@ -1,3 +1,92 @@
+getgenv().Config = {
+    ["Buy Egg"] = {
+        ["Common Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Uncommon Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Rare Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Legendary Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Mythical Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Paradise Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Bee Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Anti Bee Egg"] = {
+            ["Place"] = false
+        },
+        ["Night Egg"] = {
+            ["Place"] = false
+        },
+        ["Bug Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Dinosaur Egg"] = {
+            ["Place"] = false
+        },
+        ["Common Summer Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        },
+        ["Rare Summer Egg"] = {
+            ["Buy"] = false,
+            ["Place"] = false
+        }
+    },
+    ["Stop Farm"] = {
+        ["Enable"] = false,
+        ["Stop Farming When Money"] = 100000000
+    },
+    ["Black Screen"] = false,
+    ["Lock FPS"] = {
+        ["Enable"] = false,
+        ["FPS Need Lock"] = 3
+    },
+    ["Boost FPS"] = false,
+    ["Equip Pets"] = {
+        ["Enable"] = false,
+        ["List Pet Need Equip"] = {"Chicken", "Rooster", "Blood Kiwi", "Kiwi"}
+    },
+    ["Sell Mode"] = {
+        ["Enable"] = false,
+        ["Blacklist To Sell Pet"] = {"Queen Bee", "Red Fox", "Dragonfly", "Raccoon", "Disco Bee","Butterfly", "Mimic Octopus", "Meerkat", "Sand Snake", "Fennec Fox","Axolotl", "Hyacinth Macaw", "Hamster","T-Rex"},
+        ["Sell Pet With Full Inventory"] = 1
+    },
+    ["PetSendWebhook"] = {"Queen Bee", "Red Fox", "Dragonfly", "Raccoon", "Disco Bee", "Butterfly", "Mimic Octopus", "Meerkat", "Sand Snake", "Fennec Fox", "Axolotl", "Hyacinth Macaw","Hamster", "Golden Lab","T-Rex"},
+    ["Webhook"] = {
+        ["Enable"] = false,
+        ["Url"]= {""}
+    },
+    ["Destroy Mode"] = {
+        ["Enable"] = false,
+        ["Auto Destroy when have money"] = 100000000,
+        ["Trees"] = {"Strawberry", "Blueberry", "Tomato", "Orange Tulip", "Carrot"},
+        ["Rarity Destroy Auto"] = {"Common", "Uncommon", "Rare", "Legendary"}
+    },
+    ["Craft"] = {
+        ["Craft Dino Egg"] = {
+            ["Enable"] = false,
+            ["Pet Blacklist To Craft"] = {"Queen Bee", "Red Fox", "Dragonfly", "Raccoon", "Disco Bee", "Butterfly", "Mimic Octopus", "Meerkat", "Sand Snake", "Fennec Fox", "Axolotl", "Hyacinth Macaw","Hamster", "T-Rex"}
+        }
+    }
+}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
