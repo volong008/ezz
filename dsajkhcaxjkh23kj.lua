@@ -1,71 +1,71 @@
 getgenv().Config = {
     ["Buy Egg"] = {
         ["Common Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Uncommon Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Rare Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Legendary Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Mythical Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Paradise Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Bee Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Anti Bee Egg"] = {
-            ["Place"] = false
+            ["Place"] = true
         },
         ["Night Egg"] = {
-            ["Place"] = false
+            ["Place"] = true
         },
         ["Bug Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Dinosaur Egg"] = {
-            ["Place"] = false
+            ["Place"] = true
         },
         ["Common Summer Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         },
         ["Rare Summer Egg"] = {
-            ["Buy"] = false,
-            ["Place"] = false
+            ["Buy"] = true,
+            ["Place"] = true
         }
     },
     ["Stop Farm"] = {
         ["Enable"] = false,
         ["Stop Farming When Money"] = 100000000
     },
-    ["Black Screen"] = false,
+    ["Black Screen"] = true,
     ["Lock FPS"] = {
-        ["Enable"] = false,
-        ["FPS Need Lock"] = 3
+        ["Enable"] = true,
+        ["FPS Need Lock"] = 5
     },
-    ["Boost FPS"] = false,
+    ["Boost FPS"] = true,
     ["Equip Pets"] = {
-        ["Enable"] = false,
+        ["Enable"] = true,
         ["List Pet Need Equip"] = {"Chicken", "Rooster", "Blood Kiwi", "Kiwi"}
     },
     ["Sell Mode"] = {
-        ["Enable"] = false,
+        ["Enable"] = true,
         ["Blacklist To Sell Pet"] = {"Queen Bee", "Red Fox", "Dragonfly", "Raccoon", "Disco Bee","Butterfly", "Mimic Octopus", "Meerkat", "Sand Snake", "Fennec Fox","Axolotl", "Hyacinth Macaw", "Hamster","T-Rex"},
         ["Sell Pet With Full Inventory"] = 1
     },
